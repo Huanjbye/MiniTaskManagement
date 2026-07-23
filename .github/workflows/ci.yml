@@ -11,6 +11,9 @@ jobs:
   backend:
     name: Backend Build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -34,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./task-ui
+        working-directory: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -57,6 +60,9 @@ jobs:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    defaults:
+      run:
+        working-directory: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
