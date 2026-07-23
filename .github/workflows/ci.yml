@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore NuGet packages
+        run: dotnet restore MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/MiniTaskManagement.slnx || dotnet restore
+
+      - name: Build backend
+        run: dotnet build MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/MiniTaskManagement.slnx --configuration Release || dotnet build --configuration Release
+
+      - name: Run backend tests
+        shell: bash
+        run: |
+          dotnet test --configuration Release
+
+  frontend:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
+  sonar:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != ''
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Install SonarScanner for .NET
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: SonarQube Begin Scan
+        run: |
+          dotnet-sonarscanner begin \
+            /k:"MiniTaskManagement" \
+            /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.cs.opencover.reportsPaths="**/*.opencover.xml" \
+            /d:sonar.exclusions="**/node_modules/**,**/bin/**,**/obj/**"
+
+      - name: Build Backend for Sonar
+        run: dotnet build MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/MiniTaskManagement.slnx || dotnet build
+
+      - name: Run Backend Tests with Coverage
+        run: |
+          dotnet test --collect:"XPlat Code Coverage"
+
+      - name: SonarQube End Scan
+        run: |
+          dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
