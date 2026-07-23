@@ -21,22 +21,20 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore NuGet packages
-        run: dotnet restore MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/MiniTaskManagement.slnx || dotnet restore
+        run: dotnet restore
 
       - name: Build backend
-        run: dotnet build MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/MiniTaskManagement.slnx --configuration Release || dotnet build --configuration Release
+        run: dotnet build --configuration Release --no-restore
 
       - name: Run backend tests
-        shell: bash
-        run: |
-          dotnet test --configuration Release
+        run: dotnet test --configuration Release --no-build
 
   frontend:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui
+        working-directory: ./task-ui
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -46,7 +44,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui/package-lock.json
+          cache-dependency-path: task-ui/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -98,7 +96,7 @@ jobs:
             /d:sonar.exclusions="**/node_modules/**,**/bin/**,**/obj/**"
 
       - name: Build Backend for Sonar
-        run: dotnet build MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/MiniTaskManagement.slnx || dotnet build
+        run: dotnet build
 
       - name: Run Backend Tests with Coverage
         run: |
