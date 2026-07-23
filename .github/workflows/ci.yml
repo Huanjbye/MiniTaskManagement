@@ -21,20 +21,23 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore NuGet packages
-        run: dotnet restore
+        run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
+          dotnet restore
 
       - name: Build backend
-        run: dotnet build --configuration Release --no-restore
+        run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
+          dotnet build --configuration Release --no-restore
 
       - name: Run backend tests
-        run: dotnet test --configuration Release --no-build || echo "No tests failed"
+        run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
+          dotnet test --configuration Release --no-build || echo "No tests failed"
 
   frontend:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./task-ui
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -45,13 +48,19 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui
+          npm ci
 
       - name: Lint frontend
-        run: npm run lint || echo "Bypass lint"
+        run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui
+          npm run lint || echo "Bypass lint"
 
       - name: Build frontend
-        run: npm run build
+        run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui
+          npm run build
 
   sonar:
     name: SonarQube Analysis
@@ -86,6 +95,7 @@ jobs:
 
       - name: SonarQube Begin Scan
         run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
           dotnet-sonarscanner begin \
             /k:"MiniTaskManagement" \
             /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
@@ -94,14 +104,18 @@ jobs:
             /d:sonar.exclusions="**/node_modules/**,**/bin/**,**/obj/**"
 
       - name: Build Backend for Sonar
-        run: dotnet build
+        run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
+          dotnet build
 
       - name: Run Backend Tests with Coverage
         run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
           dotnet test --collect:"XPlat Code Coverage" || echo "Tests completed"
 
       - name: SonarQube End Scan
         run: |
+          cd MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
           dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
