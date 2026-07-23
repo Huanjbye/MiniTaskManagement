@@ -50,7 +50,7 @@ jobs:
           npm run build
 
   sonar:
-    name: SonarQube Analysis
+    name: SonarQube / SonarCloud Analysis
     runs-on: ubuntu-latest
     needs: [backend, frontend]
     steps:
@@ -90,6 +90,7 @@ jobs:
 
           dotnet-sonarscanner begin \
             /k:"MiniTaskManagement" \
+            /o:"${{ secrets.SONAR_ORGANIZATION }}" \
             /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
             /d:sonar.cs.opencover.reportsPaths="**/*.opencover.xml" \
