@@ -11,9 +11,6 @@ jobs:
   backend:
     name: Backend Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -24,20 +21,20 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore NuGet packages
-        run: dotnet restore MiniTaskManagement.slnx
+        run: dotnet restore
 
       - name: Build backend
-        run: dotnet build MiniTaskManagement.slnx --configuration Release --no-restore
+        run: dotnet build --configuration Release --no-restore
 
       - name: Run backend tests
-        run: dotnet test MiniTaskManagement.slnx --configuration Release --no-build || echo "No tests failed"
+        run: dotnet test --configuration Release --no-build || echo "No tests failed"
 
   frontend:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5/task-ui
+        working-directory: ./task-ui
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -60,9 +57,6 @@ jobs:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
     needs: [backend, frontend]
-    defaults:
-      run:
-        working-directory: MiniTaskManagement-5a58b386b08fe3d5c3c7a9885f2a21842723e5
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -100,11 +94,11 @@ jobs:
             /d:sonar.exclusions="**/node_modules/**,**/bin/**,**/obj/**"
 
       - name: Build Backend for Sonar
-        run: dotnet build MiniTaskManagement.slnx
+        run: dotnet build
 
       - name: Run Backend Tests with Coverage
         run: |
-          dotnet test MiniTaskManagement.slnx --collect:"XPlat Code Coverage" || echo "Tests completed"
+          dotnet test --collect:"XPlat Code Coverage" || echo "Tests completed"
 
       - name: SonarQube End Scan
         run: |
