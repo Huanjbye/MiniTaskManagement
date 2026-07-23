@@ -61,10 +61,6 @@ jobs:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
     needs: [backend, frontend]
-    env:
-      SONAR_TOKEN_VAL: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_VAL: ${{ secrets.SONAR_HOST_URL }}
-    if: ${{ env.SONAR_TOKEN_VAL != '' && env.SONAR_HOST_VAL != '' }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
