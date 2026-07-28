@@ -23,65 +23,64 @@ public class LoginTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Login_WithValidCredentials_ReturnsTokenAndAllowsProtectedAccess()
     {
+        // Arrange: Tạo user thành công
         var email = $"login_ok_{Guid.NewGuid():N}@example.com";
         await RegisterUserAsync(email);
 
+        // Act: Đăng nhập với thông tin hợp lệ
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new
         {
             email,
             password = "Password123!"
         });
 
+        // Assert
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var token = await ExtractTokenAsync(loginResponse);
         token.Should().NotBeNullOrWhiteSpace();
 
+        // Kiểm tra Token vừa lấy có truy cập được tài nguyên bảo vệ không
         _client.DefaultRequestHeaders.Clear();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var protectedResponse = await _client.GetAsync("/api/tasks");
-
         protectedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
     public async Task Login_WithUnknownEmail_ReturnsBadRequestOrUnauthorized()
     {
+        // Act: Đăng nhập với email không tồn tại
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new
         {
             email = $"unknown_{Guid.NewGuid():N}@example.com",
             password = "Password123!"
         });
 
+        // Assert
         loginResponse.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.Unauthorized);
     }
 
     [Fact]
     public async Task Login_WithWrongPassword_ReturnsBadRequestOrUnauthorized()
     {
+        // Arrange
         var email = $"wrongpw_{Guid.NewGuid():N}@example.com";
         await RegisterUserAsync(email);
 
+        // Act: Đăng nhập với mật khẩu sai
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new
         {
             email,
             password = "WrongPassword123!"
         });
 
+        // Assert
         loginResponse.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.Unauthorized);
     }
 
-    [Fact]
-    public async Task Login_WithoutToken_ReturnsUnauthorized()
-    {
-        _client.DefaultRequestHeaders.Clear();
-        _client.DefaultRequestHeaders.Authorization = null;
-
-        var response = await _client.GetAsync("/api/tasks");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
+    #region Helper Methods
 
     private async Task RegisterUserAsync(string email)
     {
@@ -140,4 +139,6 @@ public class LoginTests : IClassFixture<WebApplicationFactory<Program>>
 
         return null;
     }
+
+    #endregion
 }

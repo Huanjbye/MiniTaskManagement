@@ -21,6 +21,7 @@ public class RegisterTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Register_WithValidPayload_ReturnsSuccessAndCreatesUser()
     {
+        // Arrange
         var email = $"register_{Guid.NewGuid():N}@example.com";
         var request = new
         {
@@ -29,8 +30,10 @@ public class RegisterTests : IClassFixture<WebApplicationFactory<Program>>
             password = "Password123!"
         };
 
+        // Act
         var response = await _client.PostAsJsonAsync("/api/auth/register", request);
 
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         body.ToLowerInvariant().Should().Contain("register successful");
@@ -39,6 +42,7 @@ public class RegisterTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Register_WithDuplicateEmail_ReturnsBadRequest()
     {
+        // Arrange
         var email = $"duplicate_{Guid.NewGuid():N}@example.com";
         var request = new
         {
@@ -47,9 +51,11 @@ public class RegisterTests : IClassFixture<WebApplicationFactory<Program>>
             password = "Password123!"
         };
 
+        // Act
         await _client.PostAsJsonAsync("/api/auth/register", request);
         var duplicateResponse = await _client.PostAsJsonAsync("/api/auth/register", request);
 
+        // Assert
         duplicateResponse.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.Conflict);
         var body = await duplicateResponse.Content.ReadAsStringAsync();
         body.ToLowerInvariant().Should().Contain("email already exists");
@@ -58,8 +64,10 @@ public class RegisterTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Register_WithShortPassword_ReturnsBadRequestOrValidationError()
     {
+        // Arrange
         var email = $"shortpw_{Guid.NewGuid():N}@example.com";
 
+        // Act
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             fullName = "Test User",
@@ -67,18 +75,21 @@ public class RegisterTests : IClassFixture<WebApplicationFactory<Program>>
             password = "Abc123"
         });
 
+        // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.UnprocessableEntity);
     }
 
     [Fact]
     public async Task Register_WithMissingRequiredFields_ReturnsBadRequest()
     {
+        // Act: Gửi request thiếu trường email
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             fullName = "Test User",
             password = "Password123!"
         });
 
+        // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.UnprocessableEntity);
     }
 }

@@ -95,7 +95,7 @@ public class AuthorizationTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    private async Task<string?> TryLoginWithAdminAsync()
+   private async Task<string?> TryLoginWithAdminAsync()
     {
         var candidates = new[]
         {
@@ -105,6 +105,7 @@ public class AuthorizationTests : IClassFixture<WebApplicationFactory<Program>>
             new { Email = "admin@taskmanagement.com", Password = "Admin123!" }
         };
 
+        // 1. Thử đăng nhập với các tài khoản Admin có sẵn
         foreach (var candidate in candidates)
         {
             var response = await _client.PostAsJsonAsync("/api/auth/login", new
@@ -113,16 +114,31 @@ public class AuthorizationTests : IClassFixture<WebApplicationFactory<Program>>
                 password = candidate.Password
             });
 
-            if (response.StatusCode != HttpStatusCode.OK)
+            if (response.IsSuccessStatusCode)
             {
-                continue;
+                var token = await ExtractTokenAsync(response);
+                if (!string.IsNullOrWhiteSpace(token)) return token;
             }
+        }
 
-            var token = await ExtractTokenAsync(response);
-            if (!string.IsNullOrWhiteSpace(token))
+        // 2. Nếu không có sẵn Admin, thử đăng ký tài khoản Admin mới (nếu API auth/register hỗ trợ role hoặc dùng default admin email)
+        var newAdminEmail = $"admin_{Guid.NewGuid():N}@example.com";
+        var regResponse = await _client.PostAsJsonAsync("/api/auth/register", new
+        {
+            fullName = "System Admin",
+            email = newAdminEmail,
+            password = "AdminPassword123!",
+            role = "Admin" // Hoặc AdminRole tùy theo schema DTO backend của bạn
+        });
+
+        if (regResponse.IsSuccessStatusCode)
+        {
+            var loginRes = await _client.PostAsJsonAsync("/api/auth/login", new
             {
-                return token;
-            }
+                email = newAdminEmail,
+                password = "AdminPassword123!"
+            });
+            return await ExtractTokenAsync(loginRes);
         }
 
         return null;
