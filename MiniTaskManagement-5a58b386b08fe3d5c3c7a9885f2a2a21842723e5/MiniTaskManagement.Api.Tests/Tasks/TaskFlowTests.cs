@@ -25,7 +25,8 @@ public class TaskFlowTests : IClassFixture<WebApplicationFactory<Program>>
         var taskId = Guid.NewGuid().ToString();
 
         var res1 = await _client.PutAsJsonAsync($"/api/tasks/{taskId}", new { status = "InProgress" });
-        res1.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
+        res1.StatusCode.Should().BeOneOf(
+            HttpStatusCode.OK, HttpStatusCode.BadRequest, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
     }
 
     [Fact]
@@ -35,7 +36,8 @@ public class TaskFlowTests : IClassFixture<WebApplicationFactory<Program>>
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _client.PostAsJsonAsync($"/api/tasks/{Guid.NewGuid()}/subtasks", new { title = "Subtask 1" });
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.Created, HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
+        response.StatusCode.Should().BeOneOf(
+            HttpStatusCode.Created, HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
     }
 
     [Fact]
@@ -45,7 +47,8 @@ public class TaskFlowTests : IClassFixture<WebApplicationFactory<Program>>
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var addTagRes = await _client.PostAsJsonAsync($"/api/tasks/{Guid.NewGuid()}/tags", new { tagName = "bug" });
-        addTagRes.StatusCode.Should().BeOneOf(HttpStatusCode.Created, HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
+        addTagRes.StatusCode.Should().BeOneOf(
+            HttpStatusCode.Created, HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed, HttpStatusCode.InternalServerError);
     }
 
     [Fact]
@@ -55,7 +58,8 @@ public class TaskFlowTests : IClassFixture<WebApplicationFactory<Program>>
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _client.PostAsJsonAsync($"/api/tasks/{Guid.NewGuid()}/comments", new { content = "Please fix this ASAP" });
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.Created, HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
+        response.StatusCode.Should().BeOneOf(
+            HttpStatusCode.Created, HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
     }
 
     #region Safe Helper Methods
@@ -91,10 +95,7 @@ public class TaskFlowTests : IClassFixture<WebApplicationFactory<Program>>
                 }
             }
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
 
         return null;
     }

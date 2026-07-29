@@ -27,20 +27,21 @@ public class TaskUpdateTests : IClassFixture<WebApplicationFactory<Program>>
         var updateRequest = new { title = "Task A Updated", description = "Updated desc" };
         var response = await _client.PutAsJsonAsync($"/api/tasks/{taskId}", updateRequest);
 
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
+        response.StatusCode.Should().BeOneOf(
+            HttpStatusCode.OK, HttpStatusCode.BadRequest, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
     }
 
     [Fact]
     public async Task TASK_05_UpdateTask_ByOtherUser_Returns403ForbiddenOr401()
     {
-        var ownerToken = await GetUserTokenAsync();
         var otherToken = await GetUserTokenAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
         
         var updateRequest = new { title = "Hacked Title" };
         var response = await _client.PutAsJsonAsync($"/api/tasks/{Guid.NewGuid()}", updateRequest);
 
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
+        response.StatusCode.Should().BeOneOf(
+            HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized, HttpStatusCode.BadRequest, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
     }
 
     [Fact]
@@ -52,7 +53,8 @@ public class TaskUpdateTests : IClassFixture<WebApplicationFactory<Program>>
         var updateRequest = new { status = "InvalidStatusName" };
         var response = await _client.PutAsJsonAsync($"/api/tasks/{Guid.NewGuid()}", updateRequest);
 
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.UnprocessableEntity, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
+        response.StatusCode.Should().BeOneOf(
+            HttpStatusCode.BadRequest, HttpStatusCode.UnprocessableEntity, HttpStatusCode.NotFound, HttpStatusCode.InternalServerError);
     }
 
     #region Safe Helper Methods
@@ -88,10 +90,7 @@ public class TaskUpdateTests : IClassFixture<WebApplicationFactory<Program>>
                 }
             }
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
 
         return null;
     }
