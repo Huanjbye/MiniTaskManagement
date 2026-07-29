@@ -44,17 +44,17 @@ jobs:
           dotnet restore "$SLN_PATH"
           dotnet build "$SLN_PATH" --configuration Release --no-restore
 
-          # 1. Chạy test và tạo file kết quả .trx
+          # 1. Chạy test xuất log .trx
           dotnet test "$SLN_PATH" --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx"
 
-          # 2. Cài đặt tool chuyển đổi .trx sang HTML hiện đại
-          dotnet tool install --global LiquidTestReports.Cli || true
+          # 2. Cài đặt ReportGenerator
+          dotnet tool install --global dotnet-reportgenerator-globaltool || true
           export PATH="$PATH:$HOME/.dotnet/tools"
 
-          # 3. Tìm file .trx và xuất ra file TestResults.html
+          # 3. Tạo báo cáo HTML đẹp mắt từ file .trx
           TRX_FILE=$(find . -name "TestResults.trx" | head -n 1)
           if [ -f "$TRX_FILE" ]; then
-            liquid --inputs "$TRX_FILE" --output-file TestResults.html
+            reportgenerator -reports:"$TRX_FILE" -targetdir:"TestReportHtml" -reporttypes:Html
           fi
 
       - name: Upload HTML Test Report Artifact
@@ -62,7 +62,7 @@ jobs:
         with:
           name: html-test-report
           path: |
-            **/TestResults.html
+            TestReportHtml/
             **/*.trx
 
   frontend:
