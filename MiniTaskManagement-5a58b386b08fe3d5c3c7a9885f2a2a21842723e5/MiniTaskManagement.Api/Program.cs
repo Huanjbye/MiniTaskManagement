@@ -26,7 +26,9 @@ builder.Services.AddControllers()
 #endregion
 
 #region AUTH JWT
-var key = builder.Configuration["Jwt:Key"]!;
+// Fallback key an toàn nếu chưa cấu hình Jwt:Key trong appsettings (giúp Integration Tests không bị crash)
+var key = builder.Configuration["Jwt:Key"] 
+    ?? "SuperSecretKeyForMiniTaskManagementSystem_1234567890!";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -38,8 +40,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "MiniTaskApi",
+            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "MiniTaskApp",
 
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(key))
@@ -66,11 +68,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 #endregion
 
-#region OPENAPI (giữ lại của bạn)
+#region OPENAPI
 builder.Services.AddOpenApi();
 #endregion
 
-#region SWAGGER UI (thêm để test API)
+#region SWAGGER UI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 #endregion
@@ -101,7 +103,20 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-
+#region AUTO MIGRATE DATABASE (Tự động tạo bảng khi khởi chạy)
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbContext.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Migration Error] Không thể tự động migrate database: {ex.Message}");
+    }
+}
+#endregion
 
 #region MIDDLEWARE SWAGGER
 if (app.Environment.IsDevelopment())
@@ -115,7 +130,7 @@ if (app.Environment.IsDevelopment())
 app.MapOpenApi();
 #endregion
 
-// app.UseHttpsRedirection(); // tạm tắt nếu chưa setup HTTPS
+// app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -124,3 +139,6 @@ app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
+
+// BẮT BUỘC: Cho phép WebApplicationFactory trong project Test truy cập được Program class
+public partial class Program { }
