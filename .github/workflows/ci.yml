@@ -9,8 +9,24 @@ on:
 
 jobs:
   backend:
-    name: Backend Build
+    name: Backend Build & Test
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: MiniTaskManagementDB
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -21,12 +37,14 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore, Build and Test Backend
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=MiniTaskManagementDB;Username=postgres;Password=postgrespassword"
         run: |
           SLN_PATH=$(find . -name "*.slnx" -o -name "*.sln" | head -n 1)
           echo "Found solution file at: $SLN_PATH"
           dotnet restore "$SLN_PATH"
           dotnet build "$SLN_PATH" --configuration Release --no-restore
-          dotnet test "$SLN_PATH" --configuration Release --no-build || echo "No tests failed"
+          dotnet test "$SLN_PATH" --configuration Release --no-build
 
   frontend:
     name: Frontend Lint & Build
@@ -53,6 +71,22 @@ jobs:
     name: SonarQube / SonarCloud Analysis
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: MiniTaskManagementDB
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -81,6 +115,9 @@ jobs:
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Run SonarQube Analysis
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=MiniTaskManagementDB;Username=postgres;Password=postgrespassword"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SLN_PATH=$(find . -name "*.slnx" -o -name "*.sln" | head -n 1)
           SLN_DIR=$(dirname "$SLN_PATH")
@@ -100,5 +137,3 @@ jobs:
           dotnet test "$SLN_NAME" --collect:"XPlat Code Coverage" || echo "Tests completed"
 
           dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
