@@ -39,12 +39,32 @@ jobs:
       - name: Restore, Build and Test Backend
         env:
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=MiniTaskManagementDB;Username=postgres;Password=postgrespassword"
-        run: |
+       run: |
           SLN_PATH=$(find . -name "*.slnx" -o -name "*.sln" | head -n 1)
-          echo "Found solution file at: $SLN_PATH"
           dotnet restore "$SLN_PATH"
           dotnet build "$SLN_PATH" --configuration Release --no-restore
-          dotnet test "$SLN_PATH" --configuration Release --no-build
+          
+          # Chạy test và tạo file log .trx
+          dotnet test "$SLN_PATH" --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" || true
+          
+          # Cài đặt trx2html và tạo file HTML
+          dotnet tool install --global trx2html || true
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          
+          # Tìm file .trx vừa tạo và đổi sang .html
+          TRX_FILE=$(find . -name "TestResults.trx" | head -n 1)
+          if [ -f "$TRX_FILE" ]; then
+            trx2html "$TRX_FILE"
+          fi
+
+      # 2. Bước quan trọng: Đẩy file HTML lên mục Artifacts của GitHub
+      - name: Upload HTML Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-test-report
+          path: |
+            **/*.html
+            **/*.trx
 
   frontend:
     name: Frontend Lint & Build
